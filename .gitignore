@@ -1,0 +1,15 @@
+# Build output
+build/
+dist/
+bin/
+*.class
+
+# Personal NetBeans settings
+nbproject/private/
+
+# Runtime data (bookings, routes, login) created when the app runs
+data/
+
+# OS files
+.DS_Store
+Thumbs.db
