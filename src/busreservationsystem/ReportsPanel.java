@@ -37,6 +37,8 @@ public class ReportsPanel extends JPanel {
     private final JLabel totalsLabel = Theme.label(" ", Theme.LABEL, Theme.PRIMARY);
     private final JLabel routeTotals = Theme.label(" ", Theme.LABEL, Theme.PRIMARY);
     private boolean updating;
+    /** True once the admin picks a route; until then the busiest route is shown automatically. */
+    private boolean routeChosenByUser;
 
     public ReportsPanel(DataStore store) {
         this.store = store;
@@ -52,6 +54,7 @@ public class ReportsPanel extends JPanel {
         period.addActionListener(e -> refresh());
         routeBox.addActionListener(e -> {
             if (!updating) {
+                routeChosenByUser = true;
                 refreshDetails();
             }
         });
@@ -78,12 +81,13 @@ public class ReportsPanel extends JPanel {
         summaryCard.add(Theme.scroll(summary), BorderLayout.CENTER);
         summaryCard.add(totalsLabel, BorderLayout.SOUTH);
 
-        detailModel = Theme.tableModel(new String[]{"Ticket", "Passenger", "Date", "Payment", "Status"},
-                String.class, String.class, LocalDate.class, Double.class, String.class);
+        detailModel = Theme.tableModel(new String[]{"Ticket", "Passenger", "Date", "Seats", "Payment", "Status"},
+                String.class, String.class, LocalDate.class, Integer.class, Double.class, String.class);
         JTable details = Theme.table(detailModel);
         Theme.styleTable(details);
-        details.getColumnModel().getColumn(4).setCellRenderer(Theme.statusRenderer());
-        Theme.columnWidths(details, 92, 120, 110, 95, 105);
+        details.getColumnModel().getColumn(5).setCellRenderer(Theme.statusRenderer());
+        Theme.columnWidths(details, 85, 110, 110, 65, 92, 100);
+        details.putClientProperty(Theme.EMPTY_TEXT, "No bookings on this route for the selected period.");
         JPanel detailTop = new JPanel(new BorderLayout(10, 0));
         detailTop.setOpaque(false);
         detailTop.add(Theme.label("Route Details", Theme.HEADING, Theme.TEXT), BorderLayout.WEST);
@@ -98,12 +102,12 @@ public class ReportsPanel extends JPanel {
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
         c.weighty = 1;
-        c.weightx = 0.4;
+        c.weightx = 0.38;
         c.insets = new Insets(0, 0, 0, 9);
         summaryCard.setPreferredSize(new java.awt.Dimension(100, 100));
         center.add(summaryCard, c);
         c.gridx = 1;
-        c.weightx = 0.6;
+        c.weightx = 0.62;
         c.insets = new Insets(0, 9, 0, 0);
         detailCard.setPreferredSize(new java.awt.Dimension(100, 100));
         center.add(detailCard, c);
@@ -171,8 +175,11 @@ public class ReportsPanel extends JPanel {
         for (Map.Entry<String, Double> row : rows) {
             routeBox.addItem(row.getKey());
         }
-        if (current != null) {
+        if (current != null && routeChosenByUser) {
             routeBox.setSelectedItem(current);
+        } else if (routeBox.getItemCount() > 0) {
+            // Routes are sorted by earnings, so this shows the busiest route first.
+            routeBox.setSelectedIndex(0);
         }
         updating = false;
         refreshDetails();
@@ -195,7 +202,7 @@ public class ReportsPanel extends JPanel {
                 continue;
             }
             detailModel.addRow(new Object[]{b.getTicketNo(), b.getFullName(), b.getTravelDate(),
-                b.getFare(), b.getStatus()});
+                b.getSeatCount(), b.getFare(), b.getStatus()});
             if (b.isConfirmed()) {
                 passengers++;
                 seats += b.getSeatCount();

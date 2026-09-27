@@ -326,8 +326,29 @@ public final class Theme {
             public boolean getScrollableTracksViewportWidth() {
                 return getParent() == null || getPreferredSize().width <= getParent().getWidth();
             }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Object message = getClientProperty(EMPTY_TEXT);
+                if (getRowCount() == 0 && message != null) {
+                    // Friendly message instead of a blank white box.
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                    g2.setFont(BODY);
+                    g2.setColor(MUTED);
+                    java.awt.Rectangle view = getVisibleRect();
+                    String text = message.toString();
+                    int x = view.x + Math.max(10, (view.width - g2.getFontMetrics().stringWidth(text)) / 2);
+                    g2.drawString(text, x, view.y + 50);
+                    g2.dispose();
+                }
+            }
         };
     }
+
+    /** Client property: message shown inside a table while it has no rows. */
+    public static final String EMPTY_TEXT = "emptyText";
 
     /** Drop-down look without the Nimbus gradient. */
     public static class FlatComboUI extends javax.swing.plaf.basic.BasicComboBoxUI {

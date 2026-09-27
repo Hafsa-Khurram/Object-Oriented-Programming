@@ -63,8 +63,9 @@ public class DashboardPanel extends JPanel {
                 String.class, String.class, LocalDate.class, String.class);
         JTable recent = Theme.table(recentModel);
         Theme.styleTable(recent);
+        recent.putClientProperty(Theme.EMPTY_TEXT, "No bookings yet. Click \"Book a Ticket\" to add one.");
         recent.getColumnModel().getColumn(3).setCellRenderer(Theme.statusRenderer());
-        Theme.columnWidths(recent, 135, 180, 110, 105);
+        Theme.columnWidths(recent, 110, 150, 105, 100);
 
         Theme.Card recentCard = new Theme.Card(new BorderLayout(0, 12));
         recentCard.add(Theme.label("Latest Bookings", Theme.HEADING, Theme.TEXT), BorderLayout.NORTH);

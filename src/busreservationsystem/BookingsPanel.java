@@ -55,6 +55,7 @@ public class BookingsPanel extends JPanel {
                 java.time.LocalTime.class, String.class, String.class, Double.class, String.class);
         table = Theme.table(model);
         Theme.styleTable(table);
+        table.putClientProperty(Theme.EMPTY_TEXT, "No bookings found. Try another search or filter.");
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.getColumnModel().getColumn(8).setCellRenderer(Theme.statusRenderer());
         Theme.columnWidths(table, 85, 150, 200, 110, 85, 85, 80, 90, 110);
