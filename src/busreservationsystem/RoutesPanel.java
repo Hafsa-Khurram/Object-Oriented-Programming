@@ -46,7 +46,7 @@ public class RoutesPanel extends JPanel {
     private final JTextField economyFare = Theme.textField();
     private final JTextField businessFare = Theme.textField();
     private final JTextField timings = Theme.textField();
-    private final JCheckBox returnRoute = new JCheckBox("Also add the return route (same bus, fares and times)");
+    private final JCheckBox returnRoute = new JCheckBox("Also add the return route");
     private Route editing;
 
     public RoutesPanel(DataStore store) {
@@ -55,12 +55,12 @@ public class RoutesPanel extends JPanel {
         setBackground(Theme.BACKGROUND);
         setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
 
-        String[] columns = {"Route", "Bus", "Seats", "Fare (Eco/Biz)", "Trips/day"};
+        String[] columns = {"Route", "Bus", "Seats", "Fares (Eco / Biz)", "Trips"};
         model = Theme.tableModel(columns, String.class, String.class, Integer.class, String.class, Integer.class);
-        table = new JTable(model);
+        table = Theme.table(model);
         Theme.styleTable(table);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        Theme.columnWidths(table, 180, 120, 60, 130, 85);
+        Theme.columnWidths(table, 175, 125, 65, 140, 65);
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && table.getSelectedRow() >= 0) {
                 load(shown.get(table.convertRowIndexToModel(table.getSelectedRow())));
@@ -70,19 +70,21 @@ public class RoutesPanel extends JPanel {
         Theme.Card tableCard = new Theme.Card(new BorderLayout(0, 12));
         tableCard.add(Theme.label("All Routes", Theme.HEADING, Theme.TEXT), BorderLayout.NORTH);
         tableCard.add(Theme.scroll(table), BorderLayout.CENTER);
-        tableCard.add(Theme.label("Click a route to edit it. Changes are saved immediately.", Theme.SMALL,
+        tableCard.add(Theme.label("Click a route to edit it.", Theme.SMALL,
                 Theme.MUTED), BorderLayout.SOUTH);
 
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
         c.weighty = 1;
-        c.weightx = 0.66;
+        c.weightx = 1;
         c.insets = new Insets(0, 0, 0, 12);
         add(tableCard, c);
         c.gridx = 1;
-        c.weightx = 0.34;
+        c.weightx = 0;
         c.insets = new Insets(0, 12, 0, 0);
-        add(createForm(), c);
+        JComponent form = createForm();
+        form.setPreferredSize(new Dimension(370, 100));
+        add(form, c);
 
         store.addChangeListener(this::refresh);
         refresh();
@@ -94,7 +96,7 @@ public class RoutesPanel extends JPanel {
         fromBox.setEditable(true);
         toBox.setEditable(true);
         for (JSpinner spinner : new JSpinner[]{totalSeats, businessSeats}) {
-            spinner.setFont(Theme.BODY);
+            Theme.styleSpinner(spinner);
             spinner.setPreferredSize(new Dimension(100, 38));
         }
         timings.setToolTipText("Separate times with commas, e.g. 08:00 AM, 02:30 PM");
@@ -115,7 +117,7 @@ public class RoutesPanel extends JPanel {
         field(card, c, 3, 0, "Bus / company name", busName);
         c.gridwidth = 1;
         field(card, c, 5, 0, "Total seats", totalSeats);
-        field(card, c, 5, 1, "Business seats (front)", businessSeats);
+        field(card, c, 5, 1, "Business seats", businessSeats);
         field(card, c, 7, 0, "Economy fare (Rs)", economyFare);
         field(card, c, 7, 1, "Business fare (Rs)", businessFare);
         c.gridwidth = 2;
@@ -157,6 +159,9 @@ public class RoutesPanel extends JPanel {
         card.add(Theme.label(label, Theme.LABEL, Theme.TEXT), c);
         c.gridy = row + 1;
         c.insets = new Insets(0, col == 0 ? 0 : 6, 12, c.gridwidth == 2 || col == 1 ? 0 : 6);
+        // Small preferred width so the form never asks for more room than it has (which would
+        // make the layout fall back to minimum sizes and squash the fields).
+        input.setPreferredSize(new Dimension(100, 38));
         card.add(input, c);
     }
 
@@ -197,6 +202,7 @@ public class RoutesPanel extends JPanel {
         economyFare.setText(String.valueOf((long) r.getEconomyFare()));
         businessFare.setText(String.valueOf((long) r.getBusinessFare()));
         timings.setText(String.join(", ", r.getTimings()));
+        timings.setCaretPosition(0);
         returnRoute.setSelected(false);
         returnRoute.setEnabled(false);
     }
@@ -212,6 +218,7 @@ public class RoutesPanel extends JPanel {
         economyFare.setText("");
         businessFare.setText("");
         timings.setText("08:00 AM, 02:00 PM, 08:00 PM");
+        timings.setCaretPosition(0);
         returnRoute.setEnabled(true);
         returnRoute.setSelected(true);
     }

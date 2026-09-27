@@ -14,7 +14,7 @@ The admin can manage routes and buses, book tickets by choosing seats on a live 
 | 📊 **Dashboard** | Live totals for bookings, passengers, earnings and today's trips, the latest bookings, and a top-routes chart |
 | 💺 **Seat map booking** | Click seats on a 2+2 bus layout. Booked seats are locked, and Business seats are highlighted |
 | 🧾 **Payment & tickets** | Cash payment with automatic change, a boarding-pass style ticket, and printing |
-| 🔎 **Bookings manager** | Search by name, ticket or phone. Filter by route, date and status. View, edit, cancel or delete bookings |
+| 🔎 **Bookings manager** | Search by name, ticket or phone. Filter by route, date and status. Click a column header to sort. View, edit, cancel or delete bookings |
 | 🛣️ **Routes & buses** | Add, edit and delete routes: cities, bus name, total and Business seats, fares and departure times |
 | 📈 **Reports** | Passengers and earnings per route (all time, this month, today or upcoming), plus a passenger list for each route |
 | 💾 **Auto-save** | Everything is saved to the `data/` folder instantly and loaded again on start |
@@ -39,6 +39,10 @@ The admin can manage routes and buses, book tickets by choosing seats on a live 
 | Reports | Ticket |
 |---|---|
 | ![Reports](screenshots/06-reports.png) | ![Ticket](screenshots/08-ticket.png) |
+
+| Edit Booking | Settings |
+|---|---|
+| ![Edit booking](screenshots/09-edit-booking.png) | ![Settings](screenshots/07-settings.png) |
 
 ## ▶️ How to Run
 

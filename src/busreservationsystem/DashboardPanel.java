@@ -48,9 +48,9 @@ public class DashboardPanel extends JPanel {
 
         JPanel stats = new JPanel(new GridLayout(1, 4, 18, 0));
         stats.setOpaque(false);
-        stats.add(statCard("TOTAL BOOKINGS", bookingsValue, bookingsNote, Theme.PRIMARY));
-        stats.add(statCard("PASSENGERS (SEATS SOLD)", passengersValue, passengersNote, Theme.SUCCESS));
-        stats.add(statCard("TOTAL EARNINGS", revenueValue, revenueNote, Theme.ACCENT));
+        stats.add(statCard("BOOKINGS", bookingsValue, bookingsNote, Theme.PRIMARY));
+        stats.add(statCard("PASSENGERS", passengersValue, passengersNote, Theme.SUCCESS));
+        stats.add(statCard("EARNINGS", revenueValue, revenueNote, Theme.ACCENT));
         stats.add(statCard("DEPARTURES TODAY", todayValue, todayNote, new Color(14, 116, 144)));
 
         JPanel top = new JPanel(new BorderLayout(0, 18));
@@ -61,7 +61,7 @@ public class DashboardPanel extends JPanel {
 
         recentModel = Theme.tableModel(new String[]{"Passenger", "Route", "Date", "Status"},
                 String.class, String.class, LocalDate.class, String.class);
-        JTable recent = new JTable(recentModel);
+        JTable recent = Theme.table(recentModel);
         Theme.styleTable(recent);
         recent.getColumnModel().getColumn(3).setCellRenderer(Theme.statusRenderer());
         Theme.columnWidths(recent, 135, 180, 110, 105);
@@ -156,11 +156,11 @@ public class DashboardPanel extends JPanel {
         bookingsValue.setText(String.valueOf(confirmed));
         bookingsNote.setText(cancelled + " cancelled");
         passengersValue.setText(String.valueOf(seats));
-        passengersNote.setText(upcomingSeats + " still to travel");
+        passengersNote.setText(upcomingSeats + " yet to travel");
         revenueValue.setText(Theme.money(revenue));
-        revenueNote.setText(perRoute.size() + " route(s) with sales");
+        revenueNote.setText("from " + perRoute.size() + " route(s)");
         todayValue.setText(String.valueOf(todayTrips.size()));
-        todayNote.setText(todaySeats + " passenger(s) travelling");
+        todayNote.setText(todaySeats + " seat(s) booked");
         welcomeLabel.setText("Welcome back, " + store.getUsername() + "!");
 
         List<Map.Entry<String, Double>> entries = new ArrayList<>(perRoute.entrySet());

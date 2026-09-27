@@ -175,9 +175,237 @@ public final class Theme {
 
     public static <T> JComboBox<T> comboBox() {
         JComboBox<T> box = new JComboBox<>();
-        box.setFont(BODY);
-        box.setPreferredSize(new Dimension(200, 38));
+        styleComboBox(box);
         return box;
+    }
+
+    /** Flat white drop-down with a rounded border, matching the text fields. */
+    public static void styleComboBox(JComboBox<?> box) {
+        box.setUI(new FlatComboUI());
+        box.setFont(BODY);
+        box.setForeground(TEXT);
+        box.setBackground(Color.WHITE);
+        box.setOpaque(false);
+        box.setBorder(BorderFactory.createCompoundBorder(new RoundBorder(BORDER, 10),
+                BorderFactory.createEmptyBorder(1, 8, 1, 2)));
+        box.setPreferredSize(new Dimension(200, 38));
+        box.setRenderer(new javax.swing.DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index,
+                                                          boolean selected, boolean focus) {
+                JLabel cell = (JLabel) super.getListCellRendererComponent(list, value, index, selected, false);
+                cell.setFont(BODY);
+                cell.setBorder(BorderFactory.createEmptyBorder(6, index < 0 ? 4 : 10, 6, 10));
+                cell.setForeground(TEXT);
+                cell.setBackground(selected && index >= 0 ? PRIMARY_LIGHT : Color.WHITE);
+                return cell;
+            }
+        });
+        if (box.isEditable()) {
+            makeEditorFlat(box);
+        }
+        box.addPropertyChangeListener("editable", e -> makeEditorFlat(box));
+    }
+
+    private static void makeEditorFlat(JComboBox<?> box) {
+        Component editor = box.getEditor().getEditorComponent();
+        if (editor instanceof JTextField) {
+            JTextField field = (JTextField) editor;
+            field.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 4));
+            field.setFont(BODY);
+            field.setBackground(Color.WHITE);
+            field.setForeground(TEXT);
+        }
+    }
+
+    /** Plain spinner (date or number) with flat arrows, matching the text fields. */
+    public static void styleSpinner(javax.swing.JSpinner spinner) {
+        spinner.setUI(new javax.swing.plaf.basic.BasicSpinnerUI() {
+            @Override
+            protected Component createNextButton() {
+                Component button = chevronButton(true);
+                button.setName("Spinner.nextButton");
+                installNextButtonListeners(button);
+                return button;
+            }
+
+            @Override
+            protected Component createPreviousButton() {
+                Component button = chevronButton(false);
+                button.setName("Spinner.previousButton");
+                installPreviousButtonListeners(button);
+                return button;
+            }
+        });
+        spinner.setFont(BODY);
+        spinner.setOpaque(true);
+        spinner.setBackground(Color.WHITE);
+        spinner.setBorder(BorderFactory.createCompoundBorder(new RoundBorder(BORDER, 10),
+                BorderFactory.createEmptyBorder(1, 8, 1, 2)));
+        spinner.setPreferredSize(new Dimension(200, 38));
+        if (spinner.getEditor() instanceof javax.swing.JSpinner.DefaultEditor) {
+            JTextField field = ((javax.swing.JSpinner.DefaultEditor) spinner.getEditor()).getTextField();
+            field.setUI(new javax.swing.plaf.basic.BasicFormattedTextFieldUI());
+            field.setFont(BODY);
+            field.setForeground(TEXT);
+            field.setBackground(Color.WHITE);
+            field.setBorder(BorderFactory.createEmptyBorder());
+            field.setHorizontalAlignment(JTextField.LEFT);
+        }
+    }
+
+    /** Small borderless button that draws an up or down chevron. */
+    private static JButton chevronButton(boolean up) {
+        JButton button = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? PRIMARY : MUTED);
+                g2.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                int cx = getWidth() / 2;
+                int cy = getHeight() / 2;
+                if (up) {
+                    g2.drawPolyline(new int[]{cx - 4, cx, cx + 4}, new int[]{cy + 2, cy - 2, cy + 2}, 3);
+                } else {
+                    g2.drawPolyline(new int[]{cx - 4, cx, cx + 4}, new int[]{cy - 2, cy + 2, cy - 2}, 3);
+                }
+                g2.dispose();
+            }
+        };
+        button.setPreferredSize(new Dimension(22, 16));
+        button.setBorder(BorderFactory.createEmptyBorder());
+        button.setContentAreaFilled(false);
+        button.setFocusPainted(false);
+        button.setOpaque(false);
+        button.setRolloverEnabled(true);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
+    /** Panel that fills the width of its scroll pane and only scrolls vertically when needed. */
+    public static class ScrollablePanel extends JPanel implements javax.swing.Scrollable {
+        public ScrollablePanel(LayoutManager layout) {
+            super(layout);
+            setOpaque(false);
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(java.awt.Rectangle visible, int orientation, int direction) {
+            return 16;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(java.awt.Rectangle visible, int orientation, int direction) {
+            return visible.height;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return getParent() != null && getParent().getHeight() > getPreferredSize().height;
+        }
+    }
+
+    /**
+     * Table that fills the available width, but scrolls sideways instead of squeezing
+     * the columns when the window is too narrow.
+     */
+    public static JTable table(javax.swing.table.TableModel model) {
+        return new JTable(model) {
+            @Override
+            public boolean getScrollableTracksViewportWidth() {
+                return getParent() == null || getPreferredSize().width <= getParent().getWidth();
+            }
+        };
+    }
+
+    /** Drop-down look without the Nimbus gradient. */
+    public static class FlatComboUI extends javax.swing.plaf.basic.BasicComboBoxUI {
+        @Override
+        protected JButton createArrowButton() {
+            JButton button = chevronButton(false);
+            button.setPreferredSize(new Dimension(28, 28));
+            return button;
+        }
+
+        @Override
+        public void paintCurrentValueBackground(Graphics g, java.awt.Rectangle bounds, boolean hasFocus) {
+            g.setColor(Color.WHITE);
+            g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+        }
+
+        @Override
+        public void paint(Graphics g, javax.swing.JComponent c) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(comboBox.isEnabled() ? Color.WHITE : BACKGROUND);
+            g2.fillRoundRect(0, 0, c.getWidth() - 1, c.getHeight() - 1, 10, 10);
+            g2.dispose();
+            super.paint(g, c);
+        }
+    }
+
+    /** Thin rounded scroll bar in the app colours. */
+    public static class FlatScrollBarUI extends javax.swing.plaf.basic.BasicScrollBarUI {
+        @Override
+        protected void configureScrollBarColors() {
+            thumbColor = new Color(196, 199, 224);
+            trackColor = Color.WHITE;
+        }
+
+        @Override
+        protected JButton createDecreaseButton(int orientation) {
+            return zeroButton();
+        }
+
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return zeroButton();
+        }
+
+        private static JButton zeroButton() {
+            JButton button = new JButton();
+            button.setPreferredSize(new Dimension(0, 0));
+            button.setMinimumSize(new Dimension(0, 0));
+            button.setMaximumSize(new Dimension(0, 0));
+            return button;
+        }
+
+        @Override
+        protected void paintTrack(Graphics g, javax.swing.JComponent c, java.awt.Rectangle r) {
+            g.setColor(trackColor);
+            g.fillRect(r.x, r.y, r.width, r.height);
+        }
+
+        @Override
+        protected void paintThumb(Graphics g, javax.swing.JComponent c, java.awt.Rectangle r) {
+            if (r.isEmpty() || !scrollbar.isEnabled()) {
+                return;
+            }
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(isThumbRollover() ? PRIMARY : thumbColor);
+            g2.fillRoundRect(r.x + 3, r.y + 3, r.width - 6, r.height - 6, 8, 8);
+            g2.dispose();
+        }
+    }
+
+    public static void flatScrollBars(JScrollPane scroll) {
+        scroll.getVerticalScrollBar().setUI(new FlatScrollBarUI());
+        scroll.getHorizontalScrollBar().setUI(new FlatScrollBarUI());
+        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(12, 0));
+        scroll.getHorizontalScrollBar().setPreferredSize(new Dimension(0, 12));
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
     }
 
     public static void styleTable(JTable table) {
@@ -196,7 +424,17 @@ public final class Theme {
             @Override
             public Component getTableCellRendererComponent(JTable t, Object value, boolean selected,
                                                            boolean focus, int row, int column) {
-                JLabel cell = (JLabel) super.getTableCellRendererComponent(t, value, selected, focus, row, column);
+                String text = String.valueOf(value);
+                if (t != null && t.getRowSorter() != null) {
+                    for (javax.swing.RowSorter.SortKey key : t.getRowSorter().getSortKeys()) {
+                        if (key.getColumn() == t.convertColumnIndexToModel(column)) {
+                            text += key.getSortOrder() == javax.swing.SortOrder.ASCENDING ? "  \u25B2"
+                                    : key.getSortOrder() == javax.swing.SortOrder.DESCENDING ? "  \u25BC" : "";
+                        }
+                    }
+                }
+                JLabel cell = (JLabel) super.getTableCellRendererComponent(t, text, selected, focus, row, column);
+                cell.setToolTipText("Click to sort by " + value);
                 cell.setFont(LABEL);
                 cell.setForeground(Color.WHITE);
                 cell.setBackground(PRIMARY);
@@ -269,6 +507,10 @@ public final class Theme {
         JScrollPane scroll = new JScrollPane(view);
         scroll.setBorder(new RoundBorder(BORDER, 12));
         scroll.getViewport().setBackground(Color.WHITE);
+        flatScrollBars(scroll);
+        JPanel corner = new JPanel();
+        corner.setBackground(PRIMARY);
+        scroll.setCorner(JScrollPane.UPPER_RIGHT_CORNER, corner);
         return scroll;
     }
 

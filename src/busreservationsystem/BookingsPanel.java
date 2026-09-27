@@ -53,7 +53,7 @@ public class BookingsPanel extends JPanel {
         String[] columns = {"Ticket", "Passenger", "Route", "Date", "Time", "Seats", "Class", "Fare", "Status"};
         model = Theme.tableModel(columns, String.class, String.class, String.class, LocalDate.class,
                 java.time.LocalTime.class, String.class, String.class, Double.class, String.class);
-        table = new JTable(model);
+        table = Theme.table(model);
         Theme.styleTable(table);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.getColumnModel().getColumn(8).setCellRenderer(Theme.statusRenderer());
@@ -102,31 +102,34 @@ public class BookingsPanel extends JPanel {
         for (String s : new String[]{"All statuses", Booking.CONFIRMED, Booking.CANCELLED}) {
             statusFilter.addItem(s);
         }
-        routeFilter.setPreferredSize(new java.awt.Dimension(230, 38));
-        whenFilter.setPreferredSize(new java.awt.Dimension(140, 38));
+        routeFilter.setPreferredSize(new java.awt.Dimension(180, 38));
+        whenFilter.setPreferredSize(new java.awt.Dimension(125, 38));
         statusFilter.setPreferredSize(new java.awt.Dimension(150, 38));
+        search.setPreferredSize(new java.awt.Dimension(150, 38));
         routeFilter.addActionListener(e -> applyFilters());
         whenFilter.addActionListener(e -> applyFilters());
         statusFilter.addActionListener(e -> applyFilters());
 
-        JButton newBooking = Theme.button("+  New Booking", Theme.ButtonStyle.PRIMARY);
-        newBooking.addActionListener(e -> portal.startNewBooking());
-
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        left.setOpaque(false);
-        left.add(Theme.label("Search", Theme.LABEL, Theme.TEXT));
-        left.add(search);
-        left.add(routeFilter);
-        left.add(whenFilter);
-        left.add(statusFilter);
-        JPanel bar = new JPanel(new BorderLayout());
+        // Search box stretches; the filters keep their size, so nothing overlaps on small screens.
+        JPanel bar = new JPanel(new java.awt.GridBagLayout());
         bar.setOpaque(false);
-        bar.add(left, BorderLayout.WEST);
-        bar.add(newBooking, BorderLayout.EAST);
+        java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
+        c.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        c.insets = new java.awt.Insets(0, 0, 0, 10);
+        bar.add(Theme.label("Search", Theme.LABEL, Theme.TEXT), c);
+        c.weightx = 1;
+        bar.add(search, c);
+        c.weightx = 0;
+        bar.add(routeFilter, c);
+        bar.add(whenFilter, c);
+        c.insets = new java.awt.Insets(0, 0, 0, 0);
+        bar.add(statusFilter, c);
         return bar;
     }
 
     private JPanel createActions() {
+        JButton newBooking = Theme.button("+  New Booking", Theme.ButtonStyle.SUCCESS);
+        newBooking.addActionListener(e -> portal.startNewBooking());
         JButton view = Theme.button("View Ticket", Theme.ButtonStyle.SECONDARY);
         JButton edit = Theme.button("Edit", Theme.ButtonStyle.PRIMARY);
         JButton cancel = Theme.button("Cancel Booking", Theme.ButtonStyle.SECONDARY);
@@ -143,6 +146,7 @@ public class BookingsPanel extends JPanel {
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttons.setOpaque(false);
+        buttons.add(newBooking);
         buttons.add(view);
         buttons.add(edit);
         buttons.add(cancel);
@@ -209,8 +213,8 @@ public class BookingsPanel extends JPanel {
             model.addRow(new Object[]{b.getTicketNo(), b.getFullName(), b.getRouteName(), b.getTravelDate(), DataStore.parseTime(b.getTime()),
                 b.getSeatsText(), b.getSeatClass(), b.getFare(), b.getStatus()});
         }
-        countLabel.setText("Showing " + shown.size() + " of " + store.getBookings().size() + " bookings"
-                + "   |   Double-click a row to see the ticket");
+        countLabel.setText(shown.size() + " of " + store.getBookings().size() + " bookings");
+        countLabel.setToolTipText("Double-click a row to see the ticket");
     }
 
     private Booking selected() {

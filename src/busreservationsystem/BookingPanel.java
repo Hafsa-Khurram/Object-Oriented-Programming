@@ -59,7 +59,8 @@ public class BookingPanel extends JPanel {
     private final JSpinner dateSpinner;
 
     private final JLabel formTitle = Theme.label("Passenger & Trip", Theme.HEADING, Theme.TEXT);
-    private final JLabel tripInfo = Theme.label(" ", Theme.SMALL, Theme.MUTED);
+    private final JLabel tripInfo = Theme.label(" ", Theme.LABEL, Theme.TEXT);
+    private final JLabel fareInfo = Theme.label(" ", Theme.SMALL, Theme.MUTED);
     private final JLabel seatsInfo = Theme.label(" ", Theme.LABEL, Theme.PRIMARY);
     private final JLabel selectedLabel = Theme.label("No seats selected", Theme.BODY, Theme.TEXT);
     private final JLabel classLabel = Theme.label(" ", Theme.SMALL, Theme.MUTED);
@@ -80,9 +81,8 @@ public class BookingPanel extends JPanel {
 
         SpinnerDateModel model = new SpinnerDateModel(new Date(), startOfToday(), null, Calendar.DAY_OF_MONTH);
         dateSpinner = new JSpinner(model);
-        dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "EEE, dd MMM yyyy"));
-        dateSpinner.setFont(Theme.BODY);
-        dateSpinner.setPreferredSize(new Dimension(200, 38));
+        dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "dd MMM yyyy"));
+        Theme.styleSpinner(dateSpinner);
 
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
@@ -138,62 +138,120 @@ public class BookingPanel extends JPanel {
     // ===================== Layout =====================
 
     private JComponent createFormCard() {
-        Theme.Card card = new Theme.Card(new GridBagLayout());
         for (JRadioButton radio : new JRadioButton[]{male, female}) {
             radio.setFont(Theme.BODY);
             radio.setOpaque(false);
             genderGroup.add(radio);
         }
-        JPanel genderRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        JPanel genderRow = new JPanel();
+        genderRow.setLayout(new javax.swing.BoxLayout(genderRow, javax.swing.BoxLayout.X_AXIS));
         genderRow.setOpaque(false);
+        for (JRadioButton radio : new JRadioButton[]{male, female}) {
+            radio.setMargin(new Insets(0, 0, 0, 0));
+            radio.setIconTextGap(4);
+        }
         genderRow.add(male);
-        genderRow.add(javax.swing.Box.createHorizontalStrut(18));
+        genderRow.add(javax.swing.Box.createHorizontalStrut(12));
         genderRow.add(female);
+        genderRow.add(javax.swing.Box.createHorizontalGlue());
 
+        // One column of rows; every row has two equal halves, so fields always line up.
+        Theme.ScrollablePanel content = new Theme.ScrollablePanel(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.weightx = 1;
-        c.gridwidth = 2;
-        c.gridx = 0;
-        c.gridy = 0;
         c.insets = new Insets(0, 0, 14, 0);
-        card.add(formTitle, c);
+        content.add(formTitle, c);
+        content.add(row(field("First name", firstName), field("Last name", lastName)), c);
+        content.add(row(field("Gender", genderRow), field("Phone (optional)", phone)), c);
+        content.add(row(field("From", fromBox), field("To", toBox)), c);
+        content.add(row(field("Travel date", dateSpinner), field("Departure time", timeBox)), c);
 
-        c.gridwidth = 1;
-        addField(card, c, 1, 0, "First name", firstName);
-        addField(card, c, 1, 1, "Last name", lastName);
-        addField(card, c, 3, 0, "Gender", genderRow);
-        addField(card, c, 3, 1, "Phone (optional)", phone);
-        addField(card, c, 5, 0, "From", fromBox);
-        addField(card, c, 5, 1, "To", toBox);
-        addField(card, c, 7, 0, "Travel date", dateSpinner);
-        addField(card, c, 7, 1, "Departure time", timeBox);
-
-        c.gridx = 0;
-        c.gridy = 9;
-        c.gridwidth = 2;
-        c.insets = new Insets(10, 0, 0, 0);
-        JPanel info = new Theme.Card(new GridLayout(2, 1, 0, 4), Theme.PRIMARY_LIGHT);
+        JPanel info = new Theme.Card(new GridLayout(3, 1, 0, 3), Theme.PRIMARY_LIGHT);
         info.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
         info.add(tripInfo);
+        info.add(fareInfo);
         info.add(seatsInfo);
-        card.add(info, c);
-
-        c.gridy = 10;
+        c.insets = new Insets(0, 0, 18, 0);
+        content.add(info, c);
+        content.add(createSteps(), c);
         c.weighty = 1;
-        card.add(new JLabel(), c);
+        content.add(new JLabel(), c);
+
+        // Scrolls only when the window is too short to show everything.
+        content.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 6));
+        JScrollPane scroll = new JScrollPane(content);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.setViewportBorder(null);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        Theme.flatScrollBars(scroll);
+        Theme.Card card = new Theme.Card(new BorderLayout());
+        card.add(scroll, BorderLayout.CENTER);
         return card;
     }
 
-    private void addField(JPanel card, GridBagConstraints c, int row, int col, String label, JComponent field) {
-        c.gridx = col;
-        c.gridy = row;
-        c.weighty = 0;
-        c.insets = new Insets(0, col == 0 ? 0 : 8, 5, col == 0 ? 8 : 0);
-        card.add(Theme.label(label, Theme.LABEL, Theme.TEXT), c);
-        c.gridy = row + 1;
-        c.insets = new Insets(0, col == 0 ? 0 : 8, 14, col == 0 ? 8 : 0);
-        card.add(field, c);
+    private static JPanel row(JComponent left, JComponent right) {
+        JPanel row = new JPanel(new GridLayout(1, 2, 16, 0));
+        row.setOpaque(false);
+        row.add(left);
+        row.add(right);
+        return row;
+    }
+
+    private static JPanel field(String label, JComponent input) {
+        JPanel field = new JPanel(new BorderLayout(0, 6));
+        field.setOpaque(false);
+        input.setPreferredSize(new Dimension(100, 38));
+        field.add(Theme.label(label, Theme.LABEL, Theme.TEXT), BorderLayout.NORTH);
+        field.add(input, BorderLayout.CENTER);
+        return field;
+    }
+
+    /** Short "how to book" guide shown under the form. */
+    private JComponent createSteps() {
+        JPanel steps = new JPanel(new GridLayout(0, 1, 0, 8));
+        steps.setOpaque(false);
+        steps.add(Theme.label("HOW TO BOOK", Theme.SMALL, Theme.MUTED));
+        String[] texts = {"Enter the passenger's details", "Choose the route, date and time",
+            "Click free seats on the seat map", "Press Book Ticket and take the payment"};
+        for (int i = 0; i < texts.length; i++) {
+            JLabel step = Theme.label(texts[i], Theme.BODY, Theme.TEXT);
+            step.setIcon(numberIcon(i + 1));
+            step.setIconTextGap(10);
+            steps.add(step);
+        }
+        return steps;
+    }
+
+    private static javax.swing.Icon numberIcon(int number) {
+        return new javax.swing.Icon() {
+            @Override
+            public void paintIcon(java.awt.Component c, java.awt.Graphics g, int x, int y) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Theme.PRIMARY_LIGHT);
+                g2.fillOval(x, y, 24, 24);
+                g2.setColor(Theme.PRIMARY);
+                g2.setFont(Theme.LABEL);
+                String text = String.valueOf(number);
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(text, x + (24 - fm.stringWidth(text)) / 2, y + (24 + fm.getAscent()) / 2 - 2);
+                g2.dispose();
+            }
+
+            @Override
+            public int getIconWidth() {
+                return 24;
+            }
+
+            @Override
+            public int getIconHeight() {
+                return 24;
+            }
+        };
     }
 
     private JComponent createSeatCard() {
@@ -207,6 +265,7 @@ public class BookingPanel extends JPanel {
         JScrollPane scroll = new JScrollPane(seatMap);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.setViewportBorder(null);
+        Theme.flatScrollBars(scroll);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
@@ -266,6 +325,13 @@ public class BookingPanel extends JPanel {
         dateSpinner.setValue(new Date());
         updating = false;
         refreshCitiesKeepingSelection();
+        if (currentRoute() != null && timeBox.getItemCount() == 0) {
+            // Today's buses on this route have all left, so start on tomorrow instead.
+            updating = true;
+            dateSpinner.setValue(toDate(LocalDate.now().plusDays(1)));
+            updating = false;
+            refreshTimes();
+        }
     }
 
     /** Loads a booking into the form so it can be changed. */
@@ -378,15 +444,17 @@ public class BookingPanel extends JPanel {
         Route route = currentRoute();
         String time = (String) timeBox.getSelectedItem();
         if (route == null) {
-            tripInfo.setText("No routes yet. Add one in \"Routes & Buses\".");
+            tripInfo.setText("No routes yet");
+            fareInfo.setText("Add a route in \"Routes & Buses\" first.");
             seatsInfo.setText(" ");
             seatMap.showTrip(null, new HashSet<>(), null);
             return;
         }
-        tripInfo.setText(route.getBusName() + "   |   Economy " + Theme.money(route.getEconomyFare())
-                + "   |   Business " + Theme.money(route.getBusinessFare()));
+        tripInfo.setText(route.getBusName());
+        fareInfo.setText("Economy " + Theme.money(route.getEconomyFare()) + "   |   Business "
+                + Theme.money(route.getBusinessFare()));
         if (time == null) {
-            seatsInfo.setText("No more departures on this date. Please pick another day.");
+            seatsInfo.setText("No departures left on this day. Pick another date.");
             seatsInfo.setForeground(Theme.DANGER);
             seatMap.showTrip(null, new HashSet<>(), null);
             return;

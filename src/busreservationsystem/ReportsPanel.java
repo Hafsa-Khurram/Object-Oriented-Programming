@@ -62,11 +62,11 @@ public class ReportsPanel extends JPanel {
         bar.add(period);
         add(bar, BorderLayout.NORTH);
 
-        summaryModel = Theme.tableModel(new String[]{"Route", "Tickets", "Seats", "Cancelled", "Earnings"},
-                String.class, Integer.class, Integer.class, Integer.class, Double.class);
-        JTable summary = new JTable(summaryModel);
+        summaryModel = Theme.tableModel(new String[]{"Route", "Seats", "Earnings"},
+                String.class, Integer.class, Double.class);
+        JTable summary = Theme.table(summaryModel);
         Theme.styleTable(summary);
-        Theme.columnWidths(summary, 175, 65, 55, 80, 100);
+        Theme.columnWidths(summary, 180, 70, 100);
         summary.getSelectionModel().addListSelectionListener(e -> {
             int row = summary.getSelectedRow();
             if (!e.getValueIsAdjusting() && row >= 0) {
@@ -80,10 +80,10 @@ public class ReportsPanel extends JPanel {
 
         detailModel = Theme.tableModel(new String[]{"Ticket", "Passenger", "Date", "Payment", "Status"},
                 String.class, String.class, LocalDate.class, Double.class, String.class);
-        JTable details = new JTable(detailModel);
+        JTable details = Theme.table(detailModel);
         Theme.styleTable(details);
         details.getColumnModel().getColumn(4).setCellRenderer(Theme.statusRenderer());
-        Theme.columnWidths(details, 85, 135, 110, 95, 105);
+        Theme.columnWidths(details, 92, 120, 110, 95, 105);
         JPanel detailTop = new JPanel(new BorderLayout(10, 0));
         detailTop.setOpaque(false);
         detailTop.add(Theme.label("Route Details", Theme.HEADING, Theme.TEXT), BorderLayout.WEST);
@@ -98,12 +98,14 @@ public class ReportsPanel extends JPanel {
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
         c.weighty = 1;
-        c.weightx = 0.45;
+        c.weightx = 0.4;
         c.insets = new Insets(0, 0, 0, 9);
+        summaryCard.setPreferredSize(new java.awt.Dimension(100, 100));
         center.add(summaryCard, c);
         c.gridx = 1;
-        c.weightx = 0.55;
+        c.weightx = 0.6;
         c.insets = new Insets(0, 9, 0, 0);
+        detailCard.setPreferredSize(new java.awt.Dimension(100, 100));
         center.add(detailCard, c);
         add(center, BorderLayout.CENTER);
 
@@ -159,10 +161,9 @@ public class ReportsPanel extends JPanel {
         rows.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
         for (Map.Entry<String, Double> row : rows) {
             int[] c = counts.get(row.getKey());
-            summaryModel.addRow(new Object[]{row.getKey(), c[0], c[1], c[2], row.getValue()});
+            summaryModel.addRow(new Object[]{row.getKey(), c[1], row.getValue()});
         }
-        totalsLabel.setText("Total: " + totalBookings + " bookings   |   " + totalSeats + " passengers   |   "
-                + Theme.money(totalEarnings));
+        totalsLabel.setText(totalBookings + " tickets  |  " + totalSeats + " seats  |  " + Theme.money(totalEarnings));
 
         updating = true;
         Object current = routeBox.getSelectedItem();
@@ -201,7 +202,6 @@ public class ReportsPanel extends JPanel {
                 total += b.getFare();
             }
         }
-        routeTotals.setText(passengers + " booking(s)   |   " + seats + " seat(s) booked   |   Total payment "
-                + Theme.money(total));
+        routeTotals.setText(passengers + " ticket(s)  |  " + seats + " seat(s)  |  " + Theme.money(total));
     }
 }
