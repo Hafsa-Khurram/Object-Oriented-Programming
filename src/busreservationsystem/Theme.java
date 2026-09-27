@@ -65,6 +65,8 @@ public final class Theme {
     public static final Font BIG_NUMBER = new Font(FAMILY, Font.BOLD, 28);
 
     private static final DecimalFormat MONEY = new DecimalFormat("#,##0");
+    private static final java.time.format.DateTimeFormatter TABLE_DATE =
+            java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", java.util.Locale.ENGLISH);
 
     private Theme() {
     }
@@ -203,11 +205,13 @@ public final class Theme {
                 return cell;
             }
         });
-        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+        DefaultTableCellRenderer cells = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable t, Object value, boolean selected,
                                                            boolean focus, int row, int column) {
-                JLabel cell = (JLabel) super.getTableCellRendererComponent(t, value, selected, false, row, column);
+                JLabel cell = (JLabel) super.getTableCellRendererComponent(t, display(value), selected, false,
+                        row, column);
+                cell.setHorizontalAlignment(SwingConstants.LEFT);
                 cell.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
                 if (!selected) {
                     cell.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 249, 253));
@@ -215,7 +219,44 @@ public final class Theme {
                 cell.setForeground(TEXT);
                 return cell;
             }
-        });
+        };
+        // Numbers and dates are stored as real values (so sorting is correct) and formatted here.
+        table.setDefaultRenderer(Object.class, cells);
+        table.setDefaultRenderer(Number.class, cells);
+        table.setDefaultRenderer(Double.class, cells);
+        table.setDefaultRenderer(Integer.class, cells);
+    }
+
+    /** Formats table values: dates as "28 Sep 2026", times as "10:00 AM", amounts as "Rs 2,500". */
+    public static Object display(Object value) {
+        if (value instanceof java.time.LocalDate) {
+            return ((java.time.LocalDate) value).format(TABLE_DATE);
+        }
+        if (value instanceof java.time.LocalTime) {
+            return ((java.time.LocalTime) value).format(DataStore.TIME_FORMAT);
+        }
+        if (value instanceof Double) {
+            return money((Double) value);
+        }
+        return value;
+    }
+
+    /**
+     * Read-only table model that knows the type of each column, so clicking a column
+     * header sorts dates, times and amounts correctly instead of alphabetically.
+     */
+    public static javax.swing.table.DefaultTableModel tableModel(String[] columns, Class<?>... types) {
+        return new javax.swing.table.DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+
+            @Override
+            public Class<?> getColumnClass(int column) {
+                return column < types.length ? types[column] : Object.class;
+            }
+        };
     }
 
     public static void columnWidths(JTable table, int... widths) {

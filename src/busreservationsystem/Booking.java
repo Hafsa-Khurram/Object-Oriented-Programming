@@ -73,6 +73,16 @@ public class Booking {
     public String getStatus() { return status; }
     public LocalDateTime getBookedAt() { return bookedAt; }
 
+    /** Exact date and time the bus leaves. */
+    public LocalDateTime getDeparture() {
+        return LocalDateTime.of(travelDate, DataStore.parseTime(time));
+    }
+
+    /** True once the bus has left, even if the travel date is today. */
+    public boolean hasDeparted() {
+        return getDeparture().isBefore(LocalDateTime.now());
+    }
+
     public boolean isConfirmed() {
         return CONFIRMED.equals(status);
     }

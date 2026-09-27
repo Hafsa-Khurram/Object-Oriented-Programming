@@ -107,6 +107,7 @@ public class AdminPortal extends JFrame {
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.ENGLISH));
         JLabel date = Theme.label(today, Theme.BODY, Theme.MUTED);
         JLabel user = Theme.label("  Signed in as " + store.getUsername(), Theme.LABEL, Theme.PRIMARY);
+        store.addChangeListener(() -> user.setText("  Signed in as " + store.getUsername()));
         JPanel right = new JPanel();
         right.setOpaque(false);
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
@@ -174,6 +175,7 @@ public class AdminPortal extends JFrame {
             int answer = JOptionPane.showConfirmDialog(this, "Do you want to log out?", "Log out",
                     JOptionPane.YES_NO_OPTION);
             if (answer == JOptionPane.YES_OPTION) {
+                store.clearChangeListeners();
                 dispose();
                 new LoginFrame(store).setVisible(true);
             }

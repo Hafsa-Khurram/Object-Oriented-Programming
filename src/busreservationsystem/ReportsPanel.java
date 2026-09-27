@@ -6,10 +6,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.swing.BorderFactory;
@@ -64,10 +62,11 @@ public class ReportsPanel extends JPanel {
         bar.add(period);
         add(bar, BorderLayout.NORTH);
 
-        summaryModel = readOnlyModel("Route", "Bookings", "Passengers", "Cancelled", "Earnings");
+        summaryModel = Theme.tableModel(new String[]{"Route", "Tickets", "Seats", "Cancelled", "Earnings"},
+                String.class, Integer.class, Integer.class, Integer.class, Double.class);
         JTable summary = new JTable(summaryModel);
         Theme.styleTable(summary);
-        Theme.columnWidths(summary, 190, 75, 85, 80, 100);
+        Theme.columnWidths(summary, 175, 65, 55, 80, 100);
         summary.getSelectionModel().addListSelectionListener(e -> {
             int row = summary.getSelectedRow();
             if (!e.getValueIsAdjusting() && row >= 0) {
@@ -79,11 +78,12 @@ public class ReportsPanel extends JPanel {
         summaryCard.add(Theme.scroll(summary), BorderLayout.CENTER);
         summaryCard.add(totalsLabel, BorderLayout.SOUTH);
 
-        detailModel = readOnlyModel("Ticket", "Passenger", "Date", "Seats", "Payment", "Status");
+        detailModel = Theme.tableModel(new String[]{"Ticket", "Passenger", "Date", "Payment", "Status"},
+                String.class, String.class, LocalDate.class, Double.class, String.class);
         JTable details = new JTable(detailModel);
         Theme.styleTable(details);
-        details.getColumnModel().getColumn(5).setCellRenderer(Theme.statusRenderer());
-        Theme.columnWidths(details, 85, 140, 100, 80, 95, 100);
+        details.getColumnModel().getColumn(4).setCellRenderer(Theme.statusRenderer());
+        Theme.columnWidths(details, 85, 135, 110, 95, 105);
         JPanel detailTop = new JPanel(new BorderLayout(10, 0));
         detailTop.setOpaque(false);
         detailTop.add(Theme.label("Route Details", Theme.HEADING, Theme.TEXT), BorderLayout.WEST);
@@ -111,15 +111,6 @@ public class ReportsPanel extends JPanel {
         refresh();
     }
 
-    private static DefaultTableModel readOnlyModel(String... columns) {
-        return new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-    }
-
     private boolean inPeriod(Booking b) {
         LocalDate date = b.getTravelDate();
         LocalDate today = LocalDate.now();
@@ -131,7 +122,7 @@ public class ReportsPanel extends JPanel {
             return date.equals(today);
         }
         if (UPCOMING.equals(p)) {
-            return !date.isBefore(today);
+            return !b.hasDeparted();
         }
         return true;
     }
@@ -168,7 +159,7 @@ public class ReportsPanel extends JPanel {
         rows.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
         for (Map.Entry<String, Double> row : rows) {
             int[] c = counts.get(row.getKey());
-            summaryModel.addRow(new Object[]{row.getKey(), c[0], c[1], c[2], Theme.money(row.getValue())});
+            summaryModel.addRow(new Object[]{row.getKey(), c[0], c[1], c[2], row.getValue()});
         }
         totalsLabel.setText("Total: " + totalBookings + " bookings   |   " + totalSeats + " passengers   |   "
                 + Theme.money(totalEarnings));
@@ -193,7 +184,6 @@ public class ReportsPanel extends JPanel {
             routeTotals.setText(" ");
             return;
         }
-        DateTimeFormatter format = DateTimeFormatter.ofPattern("dd MMM yy", Locale.ENGLISH);
         int seats = 0;
         double total = 0;
         int passengers = 0;
@@ -203,8 +193,8 @@ public class ReportsPanel extends JPanel {
             if (!route.equals(b.getRouteName()) || !inPeriod(b)) {
                 continue;
             }
-            detailModel.addRow(new Object[]{b.getTicketNo(), b.getFullName(), b.getTravelDate().format(format),
-                b.getSeatsText(), Theme.money(b.getFare()), b.getStatus()});
+            detailModel.addRow(new Object[]{b.getTicketNo(), b.getFullName(), b.getTravelDate(),
+                b.getFare(), b.getStatus()});
             if (b.isConfirmed()) {
                 passengers++;
                 seats += b.getSeatCount();

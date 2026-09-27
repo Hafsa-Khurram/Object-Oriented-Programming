@@ -8,11 +8,9 @@ import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -39,6 +37,7 @@ public class DashboardPanel extends JPanel {
     private final JLabel revenueNote = Theme.label(" ", Theme.SMALL, Theme.MUTED);
     private final JLabel todayNote = Theme.label(" ", Theme.SMALL, Theme.MUTED);
     private final BarChart chart = new BarChart();
+    private final JLabel welcomeLabel = Theme.label(" ", Theme.HEADING, Color.WHITE);
     private final DefaultTableModel recentModel;
 
     public DashboardPanel(DataStore store, AdminPortal portal) {
@@ -52,7 +51,7 @@ public class DashboardPanel extends JPanel {
         stats.add(statCard("TOTAL BOOKINGS", bookingsValue, bookingsNote, Theme.PRIMARY));
         stats.add(statCard("PASSENGERS (SEATS SOLD)", passengersValue, passengersNote, Theme.SUCCESS));
         stats.add(statCard("TOTAL EARNINGS", revenueValue, revenueNote, Theme.ACCENT));
-        stats.add(statCard("TRIPS TODAY", todayValue, todayNote, new Color(14, 116, 144)));
+        stats.add(statCard("DEPARTURES TODAY", todayValue, todayNote, new Color(14, 116, 144)));
 
         JPanel top = new JPanel(new BorderLayout(0, 18));
         top.setOpaque(false);
@@ -60,16 +59,12 @@ public class DashboardPanel extends JPanel {
         top.add(stats, BorderLayout.CENTER);
         add(top, BorderLayout.NORTH);
 
-        recentModel = new DefaultTableModel(new String[]{"Passenger", "Route", "Date", "Fare", "Status"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        recentModel = Theme.tableModel(new String[]{"Passenger", "Route", "Date", "Status"},
+                String.class, String.class, LocalDate.class, String.class);
         JTable recent = new JTable(recentModel);
         Theme.styleTable(recent);
-        recent.getColumnModel().getColumn(4).setCellRenderer(Theme.statusRenderer());
-        Theme.columnWidths(recent, 125, 165, 80, 90, 110);
+        recent.getColumnModel().getColumn(3).setCellRenderer(Theme.statusRenderer());
+        Theme.columnWidths(recent, 135, 180, 110, 105);
 
         Theme.Card recentCard = new Theme.Card(new BorderLayout(0, 12));
         recentCard.add(Theme.label("Latest Bookings", Theme.HEADING, Theme.TEXT), BorderLayout.NORTH);
@@ -102,7 +97,7 @@ public class DashboardPanel extends JPanel {
         Theme.Card card = new Theme.Card(new BorderLayout(), Theme.PRIMARY);
         JPanel text = new JPanel(new GridLayout(2, 1, 0, 4));
         text.setOpaque(false);
-        text.add(Theme.label("Welcome back, " + store.getUsername() + "!", Theme.HEADING, Color.WHITE));
+        text.add(welcomeLabel);
         text.add(Theme.label("Here is what is happening with your buses today.", Theme.BODY,
                 new Color(220, 220, 255)));
         JButton book = Theme.button("+  Book a Ticket", Theme.ButtonStyle.SECONDARY);
@@ -137,7 +132,7 @@ public class DashboardPanel extends JPanel {
         int seats = 0;
         int upcomingSeats = 0;
         double revenue = 0;
-        int todayTrips = 0;
+        java.util.Set<String> todayTrips = new java.util.HashSet<>();
         int todaySeats = 0;
         LocalDate today = LocalDate.now();
         Map<String, Double> perRoute = new LinkedHashMap<>();
@@ -149,11 +144,11 @@ public class DashboardPanel extends JPanel {
             confirmed++;
             seats += b.getSeatCount();
             revenue += b.getFare();
-            if (!b.getTravelDate().isBefore(today)) {
+            if (!b.hasDeparted()) {
                 upcomingSeats += b.getSeatCount();
             }
             if (b.getTravelDate().equals(today)) {
-                todayTrips++;
+                todayTrips.add(b.getRouteName() + " " + b.getTime());
                 todaySeats += b.getSeatCount();
             }
             perRoute.merge(b.getRouteName(), b.getFare(), Double::sum);
@@ -164,8 +159,9 @@ public class DashboardPanel extends JPanel {
         passengersNote.setText(upcomingSeats + " still to travel");
         revenueValue.setText(Theme.money(revenue));
         revenueNote.setText(perRoute.size() + " route(s) with sales");
-        todayValue.setText(String.valueOf(todayTrips));
-        todayNote.setText(todaySeats + " seat(s) departing today");
+        todayValue.setText(String.valueOf(todayTrips.size()));
+        todayNote.setText(todaySeats + " passenger(s) travelling");
+        welcomeLabel.setText("Welcome back, " + store.getUsername() + "!");
 
         List<Map.Entry<String, Double>> entries = new ArrayList<>(perRoute.entrySet());
         entries.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
@@ -182,11 +178,10 @@ public class DashboardPanel extends JPanel {
         recentModel.setRowCount(0);
         List<Booking> all = new ArrayList<>(store.getBookings());
         all.sort((a, b) -> b.getBookedAt().compareTo(a.getBookedAt()));
-        DateTimeFormatter format = DateTimeFormatter.ofPattern("dd MMM", Locale.ENGLISH);
         for (int i = 0; i < Math.min(8, all.size()); i++) {
             Booking b = all.get(i);
             recentModel.addRow(new Object[]{b.getFullName(), b.getRouteName(),
-                b.getTravelDate().format(format), Theme.money(b.getFare()), b.getStatus()});
+                b.getTravelDate(), b.getStatus()});
         }
     }
 }

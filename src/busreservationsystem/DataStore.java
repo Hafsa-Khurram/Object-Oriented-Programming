@@ -186,6 +186,11 @@ public class DataStore {
         listeners.add(listener);
     }
 
+    /** Called on logout so screens of the closed window stop listening. */
+    public void clearChangeListeners() {
+        listeners.clear();
+    }
+
     private void fireChanged() {
         for (Runnable listener : new ArrayList<>(listeners)) {
             listener.run();
@@ -210,6 +215,7 @@ public class DataStore {
         settings.setProperty("passwordHash", hash(new String(password)));
         Arrays.fill(password, '\0');
         saveSettings();
+        fireChanged();
     }
 
     private static String hash(String text) {
@@ -286,6 +292,10 @@ public class DataStore {
                     + newRoute.getTo() + " already exists.");
         }
         for (Booking b : upcomingBookings(oldRoute)) {
+            if (!newRoute.getTimings().contains(b.getTime())) {
+                throw new IllegalArgumentException("The " + b.getTime() + " departure has an upcoming booking (ticket "
+                        + b.getTicketNo() + "), so this time cannot be removed.\nCancel that booking first.");
+            }
             for (int seat : b.getSeats()) {
                 if (seat > newRoute.getTotalSeats()) {
                     throw new IllegalArgumentException("Seat " + seat + " is already booked (ticket "
@@ -308,8 +318,7 @@ public class DataStore {
     public List<Booking> upcomingBookings(Route route) {
         List<Booking> result = new ArrayList<>();
         for (Booking b : bookings) {
-            if (b.isConfirmed() && route.connects(b.getFrom(), b.getTo())
-                    && !b.getTravelDate().isBefore(LocalDate.now())) {
+            if (b.isConfirmed() && route.connects(b.getFrom(), b.getTo()) && !b.hasDeparted()) {
                 result.add(b);
             }
         }
@@ -344,22 +353,42 @@ public class DataStore {
         return taken;
     }
 
+    /**
+     * Next ticket number. The last issued number is remembered in the settings file, so a
+     * number is never given out twice, even after the newest booking is deleted.
+     */
     public String nextTicketNo() {
-        int max = 1000;
+        int max = Math.max(1000, lastIssuedTicket());
         for (Booking b : bookings) {
-            try {
-                max = Math.max(max, Integer.parseInt(b.getTicketNo().replaceAll("\\D", "")));
-            } catch (NumberFormatException ignored) {
-                // ticket without a number: ignore it
-            }
+            max = Math.max(max, ticketNumber(b.getTicketNo()));
         }
         return "TKT-" + (max + 1);
+    }
+
+    private int lastIssuedTicket() {
+        try {
+            return Integer.parseInt(settings.getProperty("lastTicketNo", "0"));
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
+    }
+
+    private static int ticketNumber(String ticketNo) {
+        try {
+            return Integer.parseInt(ticketNo.replaceAll("\\D", ""));
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
     }
 
     public void addBooking(Booking booking) throws IOException {
         checkSeatsFree(booking, null);
         bookings.add(booking);
         saveBookings();
+        if (ticketNumber(booking.getTicketNo()) > lastIssuedTicket()) {
+            settings.setProperty("lastTicketNo", String.valueOf(ticketNumber(booking.getTicketNo())));
+            saveSettings();
+        }
         fireChanged();
     }
 

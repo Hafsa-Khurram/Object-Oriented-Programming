@@ -55,13 +55,8 @@ public class RoutesPanel extends JPanel {
         setBackground(Theme.BACKGROUND);
         setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
 
-        String[] columns = {"Route", "Bus", "Seats", "Fare (Eco/Biz)", "Trips"};
-        model = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        String[] columns = {"Route", "Bus", "Seats", "Fare (Eco/Biz)", "Trips/day"};
+        model = Theme.tableModel(columns, String.class, String.class, Integer.class, String.class, Integer.class);
         table = new JTable(model);
         Theme.styleTable(table);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -174,7 +169,7 @@ public class RoutesPanel extends JPanel {
             shown.add(r);
             model.addRow(new Object[]{r.getName(), r.getBusName(), r.getTotalSeats(),
                 money(r.getEconomyFare()) + " / " + money(r.getBusinessFare()),
-                r.getTimings().size() + " daily"});
+                r.getTimings().size()});
         }
         Object from = fromBox.getEditor().getItem();
         Object to = toBox.getEditor().getItem();

@@ -6,7 +6,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -31,7 +30,6 @@ import javax.swing.table.DefaultTableModel;
 public class BookingsPanel extends JPanel {
 
     private static final String ALL_ROUTES = "All routes";
-    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
 
     private final DataStore store;
     private final AdminPortal portal;
@@ -53,12 +51,8 @@ public class BookingsPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
 
         String[] columns = {"Ticket", "Passenger", "Route", "Date", "Time", "Seats", "Class", "Fare", "Status"};
-        model = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        model = Theme.tableModel(columns, String.class, String.class, String.class, LocalDate.class,
+                java.time.LocalTime.class, String.class, String.class, Double.class, String.class);
         table = new JTable(model);
         Theme.styleTable(table);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -203,17 +197,17 @@ public class BookingsPanel extends JPanel {
             if (route != null && !ALL_ROUTES.equals(route) && !route.equals(b.getRouteName())) {
                 continue;
             }
-            if ("Upcoming".equals(when) && b.getTravelDate().isBefore(today)
+            if ("Upcoming".equals(when) && b.hasDeparted()
                     || "Today".equals(when) && !b.getTravelDate().equals(today)
-                    || "Past".equals(when) && !b.getTravelDate().isBefore(today)) {
+                    || "Past".equals(when) && !b.hasDeparted()) {
                 continue;
             }
             if (status != null && !status.startsWith("All") && !status.equals(b.getStatus())) {
                 continue;
             }
             shown.add(b);
-            model.addRow(new Object[]{b.getTicketNo(), b.getFullName(), b.getRouteName(), b.getTravelDate().format(DATE), b.getTime(), b.getSeatsText(),
-                b.getSeatClass(), Theme.money(b.getFare()), b.getStatus()});
+            model.addRow(new Object[]{b.getTicketNo(), b.getFullName(), b.getRouteName(), b.getTravelDate(), DataStore.parseTime(b.getTime()),
+                b.getSeatsText(), b.getSeatClass(), b.getFare(), b.getStatus()});
         }
         countLabel.setText("Showing " + shown.size() + " of " + store.getBookings().size() + " bookings"
                 + "   |   Double-click a row to see the ticket");
@@ -246,8 +240,8 @@ public class BookingsPanel extends JPanel {
                     JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        if (b.getTravelDate().isBefore(LocalDate.now())) {
-            JOptionPane.showMessageDialog(this, "This trip is in the past, so it can no longer be changed.", "Edit",
+        if (b.hasDeparted()) {
+            JOptionPane.showMessageDialog(this, "This bus has already left, so the booking can no longer be changed.", "Edit",
                     JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -262,6 +256,11 @@ public class BookingsPanel extends JPanel {
         if (!b.isConfirmed()) {
             JOptionPane.showMessageDialog(this, "This booking is already cancelled.", "Cancel booking",
                     JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        if (b.hasDeparted()) {
+            JOptionPane.showMessageDialog(this, "This bus has already left, so the booking cannot be cancelled.",
+                    "Cancel booking", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         int answer = JOptionPane.showConfirmDialog(this, "Cancel ticket " + b.getTicketNo() + " for "
